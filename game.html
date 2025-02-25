@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Animation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pyodide/0.23.4/full/pyodide.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script> <!-- Подключаем Telegram Web App API -->
+    <style>
+        body { margin: 0; overflow: hidden; background: black; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script>
+        async function main() {
+            let pyodide = await loadPyodide();
+            await pyodide.loadPackage(["numpy", "pygame"]);
+            
+            let pythonCode = `
+import pygame
+import random
+import numpy as np
+from scipy.spatial import distance
+
+pygame.init()
+SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Heart Particles")
+
+WHITE = (255, 255, 255)
+PINK = (255, 105, 180)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+
+particles = [{"pos": np.array([random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT)]),
+              "target": np.array([random.randint(200, 600), random.randint(200, 400)]),
+              "color": WHITE, "state": "moving"} for _ in range(500)]
+
+clock = pygame.time.Clock()
+running = True
+
+def update_particles():
+    for p in particles:
+        if p["state"] == "moving":
+            p["pos"] += (p["target"] - p["pos"]) * 0.05
+            if distance.euclidean(p["pos"], p["target"]) < 2:
+                p["state"] = "final"
+
+def render_particles():
+    screen.fill(BLACK)
+    for p in particles:
+        pygame.draw.circle(screen, p["color"], p["pos"].astype(int), 3)
+    pygame.display.flip()
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    update_particles()
+    render_particles()
+    clock.tick(60)
+
+pygame.quit()
+`;
+            pyodide.runPython(pythonCode);
+        }
+        main();
+    </script>
+</body>
+</html>
