@@ -2,13 +2,91 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Heart Animation</title>
     <style>
-        body { margin: 0; background: black; overflow: hidden; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+        }
+        canvas {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <script src="script.js"></script>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+        
+        const particles = [];
+        const heartPoints = [];
+        
+        function createHeart() {
+            for (let t = 0; t < Math.PI * 2; t += 0.1) {
+                let x = 16 * Math.pow(Math.sin(t), 3);
+                let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                heartPoints.push({ x: x * 10, y: -y * 10 });
+            }
+        }
+        createHeart();
+        
+        function initParticles() {
+            for (let i = 0; i < 500; i++) {
+                let target = heartPoints[Math.floor(Math.random() * heartPoints.length)];
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    targetX: target.x + canvas.width / 2,
+                    targetY: target.y + canvas.height / 2,
+                    vx: 0,
+                    vy: 0,
+                    color: "white",
+                });
+            }
+        }
+        initParticles();
+        
+        function updateParticles() {
+            particles.forEach(p => {
+                let dx = p.targetX - p.x;
+                let dy = p.targetY - p.y;
+                p.vx += dx * 0.01;
+                p.vy += dy * 0.01;
+                p.x += p.vx;
+                p.y += p.vy;
+            });
+        }
+        
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        function animate() {
+            updateParticles();
+            drawParticles();
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
 </body>
 </html>
