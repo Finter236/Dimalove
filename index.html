@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heart Animation</title>
+    <title>Сердце</title>
     <style>
         body {
             margin: 0;
@@ -20,94 +20,109 @@
     </style>
 </head>
 <body>
-<audio id="bg-music" autoplay loop>
-    <source src="https://finter236.github.io/Dimalove/kishlak-rzhavy.mp3" type="audio/mpeg">
-</audio>
-<canvas id="heartCanvas"></canvas>
+    <audio id="bg-music" autoplay loop>
+        <source src="kishlak-rzhavy.mp3" type="audio/mpeg">
+    </audio>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
 
-<script>
-    const canvas = document.getElementById("heartCanvas");
-    const ctx = canvas.getContext("2d");
-    const particles = [];
-    let flicker = false;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+        const heartImage = new Image();
+        heartImage.src = "heart.png"; 
 
-    const heartPoints = [];
-    const textPoints = [];
+        let particles = [];
+        let blinking = false;
+        let colorToggle = false;
 
-    function heartShape(x, y, size) {
-        let points = [];
-        for (let i = 0; i < Math.PI * 2; i += 0.05) {
-            let px = size * (16 * Math.pow(Math.sin(i), 3)) + x;
-            let py = -size * (13 * Math.cos(i) - 5 * Math.cos(2 * i) - 2 * Math.cos(3 * i) - Math.cos(4 * i)) + y;
-            points.push({ x: px, y: py });
-        }
-        return points;
-    }
+        function createParticles() {
+            const heartWidth = 200;  
+            const heartHeight = 180; 
+            const startX = canvas.width / 2 - heartWidth / 2;
+            const startY = canvas.height / 2 - heartHeight / 2;
+            
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = heartWidth;
+            tempCanvas.height = heartHeight;
+            const tempCtx = tempCanvas.getContext("2d");
 
-    function generateParticles() {
-        let heart = heartShape(canvas.width / 2 + 20, canvas.height / 2, 12);
-        heartPoints.push(...heart);
+            tempCtx.drawImage(heartImage, 0, 0, heartWidth, heartHeight);
+            const imageData = tempCtx.getImageData(0, 0, heartWidth, heartHeight);
+            const data = imageData.data;
 
-        let textX = canvas.width / 2 - 20;
-        let textY = canvas.height / 2;
-        textPoints.push({ x: textX, y: textY });
-
-        for (let i = 0; i < 600; i++) {
-            let target = heartPoints[Math.floor(Math.random() * heartPoints.length)];
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                targetX: target.x,
-                targetY: target.y,
-                color: "white",
-                reached: false
-            });
-        }
-    }
-
-    function updateParticles() {
-        particles.forEach(p => {
-            if (!p.reached) {
-                p.x += (p.targetX - p.x) * 0.05;
-                p.y += (p.targetY - p.y) * 0.05;
-                if (Math.abs(p.x - p.targetX) < 1 && Math.abs(p.y - p.targetY) < 1) {
-                    p.reached = true;
+            for (let x = 0; x < heartWidth; x += 4) {
+                for (let y = 0; y < heartHeight; y += 4) {
+                    const index = (y * heartWidth + x) * 4;
+                    if (data[index + 3] > 128) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            targetX: startX + x,
+                            targetY: startY + y,
+                            color: "white",
+                            state: "moving"
+                        });
+                    }
                 }
-            } else {
-                p.color = flicker ? "pink" : "white";
             }
-        });
-    }
+        }
 
-    function drawParticles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-            ctx.fill();
-        });
+        function updateParticles() {
+            let allArrived = true;
+            particles.forEach(p => {
+                if (p.state === "moving") {
+                    p.x += (p.targetX - p.x) * 0.05;
+                    p.y += (p.targetY - p.y) * 0.05;
 
-        ctx.fillStyle = "red";
-        ctx.font = "80px Arial";
-        ctx.fillText("42", textPoints[0].x, textPoints[0].y);
-    }
+                    if (Math.abs(p.x - p.targetX) < 1 && Math.abs(p.y - p.targetY) < 1) {
+                        p.state = "final";
+                    } else {
+                        allArrived = false;
+                    }
+                }
+            });
 
-    function animate() {
-        updateParticles();
-        drawParticles();
-        requestAnimationFrame(animate);
-    }
+            if (allArrived && !blinking) {
+                blinking = true;
+                setInterval(() => {
+                    colorToggle = !colorToggle;
+                    particles.forEach(p => {
+                        if (p.state === "final") {
+                            p.color = colorToggle ? "pink" : "white";
+                        }
+                    });
+                }, 1000);
+            }
+        }
 
-    generateParticles();
-    animate();
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
-    setInterval(() => {
-        flicker = !flicker;
-    }, 1000);
-</script>
+            ctx.fillStyle = "red";
+            ctx.font = "bold 60px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("42", canvas.width / 2 + 20, canvas.height / 2);
+        }
+
+        function animate() {
+            updateParticles();
+            drawParticles();
+            requestAnimationFrame(animate);
+        }
+
+        heartImage.onload = () => {
+            createParticles();
+            animate();
+        };
+    </script>
 </body>
 </html>
