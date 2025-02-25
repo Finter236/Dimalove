@@ -33,6 +33,20 @@
             z-index: 2;
         }
 
+        #start-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 20px;
+            background: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 3;
+        }
+
         audio {
             display: none;
         }
@@ -41,7 +55,8 @@
 <body>
     <canvas id="canvas"></canvas>
     <div class="text">42</div>
-    <audio id="bg-music" loop autoplay>
+    <button id="start-button">▶ Включить</button>
+    <audio id="bg-music" loop>
         <source src="kishlak-rzhavy.mp3" type="audio/mpeg">
     </audio>
 
@@ -56,15 +71,18 @@
         const heartPoints = [];
         const numParticles = 300;
         let blink = false;
+        let allFinal = false;
 
-        // Генерация точек сердца (параметрическое уравнение)
+        // Генерация точек сердца
         function generateHeart() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 - 50;
             for (let t = 0; t < Math.PI * 2; t += 0.05) {
                 let x = 16 * Math.pow(Math.sin(t), 3);
-                let y = - (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                let y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
 
-                x = (x * 15) + canvas.width / 2;
-                y = (y * 15) + canvas.height / 2;
+                x = (x * 15) + centerX;
+                y = (y * 15) + centerY;
                 heartPoints.push({ x, y });
             }
         }
@@ -85,4 +103,59 @@
                     state: "moving"
                 });
             }
-       
+        }
+
+        createParticles();
+
+        function updateParticles() {
+            allFinal = true;
+
+            particles.forEach(p => {
+                if (p.state === "moving") {
+                    p.x += (p.targetX - p.x) * 0.05;
+                    p.y += (p.targetY - p.y) * 0.05;
+
+                    if (Math.hypot(p.x - p.targetX, p.y - p.targetY) < 2) {
+                        p.state = "final";
+                    } else {
+                        allFinal = false;
+                    }
+                }
+            });
+
+            if (allFinal) {
+                blink = !blink;
+                particles.forEach(p => {
+                    if (p.state === "final") {
+                        p.color = blink ? "pink" : "white";
+                    }
+                });
+            }
+        }
+
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function animate() {
+            updateParticles();
+            drawParticles();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Кнопка для включения музыки
+        document.getElementById("start-button").addEventListener("click", function () {
+            document.getElementById("bg-music").play();
+            this.style.display = "none";
+        });
+    </script>
+</body>
+</html>
