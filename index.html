@@ -37,6 +37,7 @@
         let textParticles = [];
         let assembled = false;
         let blink = false;
+        let blinkTimer = 0;
 
         const HEART_IMAGE_SRC = "heart.png"; // Загрузи этот файл!
         const TEXT = "42";
@@ -69,7 +70,7 @@
         }
 
         function createParticles() {
-            for (let i = 0; i < 500; i++) {
+            for (let i = 0; i < 1500; i++) { // Увеличено число частиц
                 particles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
@@ -81,7 +82,7 @@
 
             const textX = canvas.width / 2;
             const textY = canvas.height / 2;
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 200; i++) { // Больше частиц для "42"
                 textParticles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
@@ -129,6 +130,13 @@
             particles.forEach(p => {
                 ctx.fillStyle = assembled ? (blink ? "white" : "pink") : p.color;
                 ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            textParticles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
                 ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
                 ctx.fill();
             });
@@ -143,14 +151,20 @@
         function animate() {
             updateParticles();
             renderParticles();
+            
             if (assembled) {
-                blink = !blink;
+                blinkTimer++;
+                if (blinkTimer % 30 === 0) { // Каждые 30 кадров меняем цвет
+                    blink = !blink;
+                }
             }
+
             requestAnimationFrame(animate);
         }
 
         function playMusic() {
-            document.getElementById("bg-music").play();
+            const audio = document.getElementById("bg-music");
+            audio.play().catch(e => console.error("Автозапуск музыки заблокирован браузером", e));
         }
 
         async function start() {
@@ -158,8 +172,7 @@
             createParticles();
             animate();
 
-            // Запускаем музыку при клике
-            document.body.addEventListener("click", playMusic, { once: true });
+            document.body.addEventListener("click", playMusic, { once: true }); // Запускаем музыку при клике
         }
 
         start();
