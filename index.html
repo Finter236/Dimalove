@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heart Animation</title>
+    <title>Сердце для тебя</title>
     <style>
         body {
             margin: 0;
@@ -11,97 +11,137 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            background-color: black;
             height: 100vh;
-            background: black;
-            position: relative;
         }
         canvas {
             position: absolute;
         }
-        #text {
-            position: absolute;
-            color: red;
-            font-size: 48px;
-            font-weight: bold;
-            text-align: center;
-        }
-        audio {
-            display: none;
-        }
     </style>
 </head>
 <body>
-    <canvas id="heartCanvas"></canvas>
-    <div id="text">42</div>
-    <audio id="bgMusic" autoplay loop>
-        <source src="your-music-file.mp3" type="audio/mpeg">
+    <audio id="bg-music" loop>
+        <source src="music.mp3" type="audio/mpeg">
     </audio>
+    <canvas id="heartCanvas"></canvas>
     <script>
+        document.body.addEventListener('click', function playMusicOnce() {
+            document.getElementById("bg-music").play();
+            document.body.removeEventListener('click', playMusicOnce);
+        });
+
         const canvas = document.getElementById("heartCanvas");
         const ctx = canvas.getContext("2d");
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        
-        const textElement = document.getElementById("text");
-        textElement.style.left = `${canvas.width / 2 - 25}px`;
-        textElement.style.top = `${canvas.height / 2 - 25}px`;
 
         const particles = [];
-        const heartShape = [];
-        const heartSize = Math.min(canvas.width, canvas.height) / 4;
-        
-        for (let t = 0; t < Math.PI * 2; t += 0.05) {
-            let x = heartSize * (16 * Math.pow(Math.sin(t), 3));
-            let y = -heartSize * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-            heartShape.push({ x: x + canvas.width / 2, y: y + canvas.height / 2.5 });
+        const heartPoints = [];
+        const textParticles = [];
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const heartSize = 100;
+
+        function heartFunction(t) {
+            return {
+                x: 16 * Math.pow(Math.sin(t), 3),
+                y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+            };
         }
-        
-        for (let i = 0; i < 600; i++) {
-            let target = heartShape[Math.floor(Math.random() * heartShape.length)];
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                targetX: target.x,
-                targetY: target.y,
-                color: "white",
-                reached: false
+
+        for (let i = 0; i < Math.PI * 2; i += 0.1) {
+            let point = heartFunction(i);
+            heartPoints.push({
+                x: centerX + point.x * heartSize,
+                y: centerY + point.y * heartSize
             });
         }
-        
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            let allReached = true;
-            
+
+        function createParticles() {
+            for (let i = 0; i < heartPoints.length * 3; i++) {
+                let target = heartPoints[i % heartPoints.length];
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    targetX: target.x,
+                    targetY: target.y,
+                    color: "white",
+                    state: "moving"
+                });
+            }
+
+            const text = "42";
+            ctx.font = "80px Arial";
+            ctx.fillStyle = "red";
+            ctx.fillText(text, centerX - 30, centerY);
+            const textData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+            for (let x = 0; x < canvas.width; x += 6) {
+                for (let y = 0; y < canvas.height; y += 6) {
+                    let index = (y * canvas.width + x) * 4;
+                    if (textData[index] > 200) {
+                        textParticles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            targetX: x,
+                            targetY: y,
+                            color: "red",
+                            state: "moving"
+                        });
+                    }
+                }
+            }
+        }
+        createParticles();
+
+        function updateParticles() {
             particles.forEach(p => {
-                if (!p.reached) {
+                if (p.state === "moving") {
                     p.x += (p.targetX - p.x) * 0.05;
                     p.y += (p.targetY - p.y) * 0.05;
                     if (Math.abs(p.x - p.targetX) < 1 && Math.abs(p.y - p.targetY) < 1) {
-                        p.reached = true;
-                    } else {
-                        allReached = false;
+                        p.state = "final";
                     }
                 }
-                ctx.fillStyle = p.color;
+            });
+
+            textParticles.forEach(p => {
+                if (p.state === "moving") {
+                    p.x += (p.targetX - p.x) * 0.05;
+                    p.y += (p.targetY - p.y) * 0.05;
+                    if (Math.abs(p.x - p.targetX) < 1 && Math.abs(p.y - p.targetY) < 1) {
+                        p.state = "final";
+                    }
+                }
+            });
+        }
+
+        let blinkTimer = 0;
+        function renderParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            blinkTimer++;
+
+            particles.forEach(p => {
+                ctx.fillStyle = (blinkTimer % 60 < 30) ? "pink" : "white";
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
                 ctx.fill();
             });
-            
-            if (allReached) {
-                setInterval(() => {
-                    particles.forEach(p => p.color = p.color === "white" ? "pink" : "white");
-                }, 1000);
-            }
+
+            textParticles.forEach(p => {
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function animate() {
+            updateParticles();
+            renderParticles();
             requestAnimationFrame(animate);
         }
         animate();
-        
-        window.onload = () => {
-            document.getElementById("bgMusic").play().catch(() => {
-                console.log("Автовоспроизведение заблокировано");
-            });
-        };
     </script>
 </body>
 </html>
